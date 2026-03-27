@@ -1,79 +1,105 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# Sample: Standalone Google Pay on Android
 
-# Getting Started
+A minimal React Native sample showing how to integrate Google Pay on Android
+using Gr4vy as the payment gateway, without the Gr4vy SDK.
 
->**Note**: Make sure you have completed the [React Native - Environment Setup](https://reactnative.dev/docs/environment-setup) instructions till "Creating a new application" step, before proceeding.
+This sample mirrors the structure of
+[sample-standalone-google-pay](https://github.com/gr4vy/sample-standalone-google-pay)
+(the web version) and follows the
+[Gr4vy Android without SDK guide](https://docs.gr4vy.com/guides/features/google-pay/mobile-without-sdk).
 
-## Step 1: Start the Metro Server
+## How it works
 
-First, you will need to start **Metro**, the JavaScript _bundler_ that ships _with_ React Native.
+1. **Get a Gr4vy API token** — a local backend server generates a short-lived token using your private key
+2. **Request payment** — configure the Google Pay request and call `PaymentRequest.show()`
+3. **Create a transaction** — submit the Google Pay token to Gr4vy
 
-To start Metro, run the following command from the _root_ of your React Native project:
+The key files are:
+- `App.js` — the React Native app
+- `server.js` — a simple local token server (mirrors `pages/api/token.js` from the web sample)
 
-```bash
-# using npm
-npm start
+## Prerequisites
 
-# OR using Yarn
-yarn start
-```
+- Node v18 or above
+- An Android device or emulator with Google Play Services and a Google account signed in
+- A Gr4vy sandbox account with an API key (`private_key.pem`)
+- A connector configured in your Gr4vy dashboard that supports Google Pay
 
-## Step 2: Start your Application
-
-Let Metro Bundler run in its _own_ terminal. Open a _new_ terminal from the _root_ of your React Native project. Run the following command to start your _Android_ or _iOS_ app:
-
-### For Android
-
-```bash
-# using npm
-npm run android
-
-# OR using Yarn
-yarn android
-```
-
-### For iOS
+## Setup
 
 ```bash
-# using npm
-npm run ios
-
-# OR using Yarn
-yarn ios
+npx @react-native-community/cli@latest init MySample --version 0.74.0
+cd MySample
+npm install @google/react-native-make-payment
+npm install @gr4vy/node
 ```
 
-If everything is set up _correctly_, you should see your new app running in your _Android Emulator_ or _iOS Simulator_ shortly provided you have set up your emulator/simulator correctly.
+Copy `App.js` and `server.js` into your project. Place `private_key.pem` in the project root.
 
-This is one way to run your app — you can also run it directly from within Android Studio and Xcode respectively.
+Update the config in both files:
 
-## Step 3: Modifying your App
+```js
+const config = {
+  gr4vyId: "YOUR_GR4VY_ID",
+  merchantAccountId: "default",
+  sandbox: true,
+  ...
+};
+```
 
-Now that you have successfully run the app, let's modify it.
+### Enable cleartext HTTP traffic
 
-1. Open `App.tsx` in your text editor of choice and edit some lines.
-2. For **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Developer Menu** (<kbd>Ctrl</kbd> + <kbd>M</kbd> (on Window and Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (on macOS)) to see your changes!
+The app fetches a token from your local server over HTTP. Add `android:usesCleartextTraffic="true"` to the `<application>` tag in `android/app/src/main/AndroidManifest.xml`:
 
-   For **iOS**: Hit <kbd>Cmd ⌘</kbd> + <kbd>R</kbd> in your iOS Simulator to reload the app and see your changes!
+```xml
+<application
+  android:usesCleartextTraffic="true"
+  ...>
+```
 
-## Congratulations! :tada:
+### Start the token server
 
-You've successfully run and modified your React Native App. :partying_face:
+```bash
+node server.js
+```
 
-### Now what?
+You should see `Token server running at http://localhost:3000`.
 
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [Introduction to React Native](https://reactnative.dev/docs/getting-started).
+### Run on Android
 
-# Troubleshooting
+Make sure you have an Android device or emulator running with a Google account signed in.
+Then from your terminal:
 
-If you can't get this to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
+```bash
+npx react-native run-android
+```
 
-# Learn More
+React Native will build the app and install it on your device/emulator automatically.
+The app will automatically fetch a fresh token from the server on load.
 
-To learn more about React Native, take a look at the following resources:
+## Note on `merchantInfo.merchantId`
 
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+This sample includes `merchantId: "BCR2DN4T7C3KX6DY"` in the `merchantInfo` object.
+This is Gr4vy's platform-level Google Pay merchant ID — the same for every merchant.
+It is documented as required on the
+[web without Embed page](https://docs.gr4vy.com/guides/features/google-pay/web-without-sdk)
+so we've included it here on the assumption the same applies for Android in production.
+Sandbox works without it either way.
+
+## Going to production
+
+To switch to production update the config in both `App.js` and `server.js`:
+
+```js
+const config = { sandbox: false, ... };
+```
+
+Add to `android/gradle.properties`:
+
+```
+GOOGLE_PAY_ENVIRONMENT=PRODUCTION
+```
+
+Production also requires your app to be registered and approved in the
+[Google Pay & Wallet Console](https://pay.google.com/business/console).
+Without this, payments will fail with `OR_BIBED_11`.
