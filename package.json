@@ -10,6 +10,8 @@
     "test": "jest"
   },
   "dependencies": {
+    "@google/react-native-make-payment": "^0.2.2",
+    "@gr4vy/node": "^1.4.0",
     "react": "18.2.0",
     "react-native": "0.74.0"
   },

@@ -1,4 +1,9 @@
 {
   "name": "Gr4vyGooglePay",
-  "displayName": "Gr4vyGooglePay"
+  "displayName": "Gr4vyGooglePay",
+  "extra": {
+    "eas": {
+      "projectId": "52762f78-d593-4e97-a9e6-de57184b6698"
+    }
+  }
 }
